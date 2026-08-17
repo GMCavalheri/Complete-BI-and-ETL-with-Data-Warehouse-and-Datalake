@@ -2,13 +2,13 @@
 Faker==30.8.2
 PyYAML==6.0.2
 
-# Data lake layer (added in the next stage of the project)
-# pyarrow==17.0.0
-# polars==1.9.0
-# duckdb==1.1.3
+# Data lake layer
+pyarrow==17.0.0
+polars==1.9.0
+duckdb==1.1.3
 
 # Data warehouse layer (added in the next stage of the project)
 # psycopg2-binary==2.9.10
 
-# Testing (added later)
-# pytest==8.3.3
+# Testing 
+pytest==8.3.3
