@@ -1,0 +1,46 @@
+# =============================================================================
+# Central configuration for the DW-Lake Integration project.
+#
+# Nothing in the codebase should hardcode a file path, DB credential, or
+# "how much data to generate" number — it should be read from here instead.
+# This is what makes the project "configurable" rather than a pile of
+# scripts full of magic values.
+#
+# In Docker, POSTGRES_HOST becomes the service name defined in
+# docker-compose.yml (e.g. "postgres") instead of "localhost".
+# =============================================================================
+
+database:
+  host: "${POSTGRES_HOST:localhost}"
+  port: 5432
+  name: "dw_lake"
+  user: "dw_user"
+  password: "${POSTGRES_PASSWORD:dw_password}"  # overridden via env var in real use
+
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  schema_sql: "warehouse/schema.sql"
+  queries_dir: "warehouse/queries"
+
+data_generation:
+  seed: 42                # fixed seed = reproducible dataset for anyone who clones the repo
+  num_customers: 3000
+  num_products: 300
+  num_stores: 25
+  num_orders: 60000
+  start_date: "2023-01-01"
+  end_date: "2025-12-31"
+
+  # Intentional data-quality issues injected into the raw data, so the
+  # lake ingestion step (Polars) has real cleaning work to do.
+  messiness:
+    duplicate_email_rate: 0.03    # % of customers sharing an email with another
+    null_city_rate: 0.05
+    mixed_date_format_rate: 0.30  # % of orders using a non-ISO date format
+    null_quantity_rate: 0.01
+    negative_quantity_rate: 0.005 # simulates data entry errors
+
+pipeline:
+  batch_size: 5000        # rows per batch when loading into Postgres
+  log_level: "INFO"
