@@ -1,0 +1,16 @@
+# Don't bake generated data, logs, or local dev clutter into the image —
+# these are mounted as volumes at runtime instead (see docker-compose.yml).
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+logs/*
+!logs/.gitkeep
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+.env
+README.md

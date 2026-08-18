@@ -1,0 +1,73 @@
+# =============================================================================
+# docker-compose.yml
+#
+# Two services:
+#   - postgres  : the data warehouse database. On first startup, Postgres
+#                 automatically executes any .sql file mounted into
+#                 /docker-entrypoint-initdb.d/ — that's how warehouse/schema.sql
+#                 gets applied with zero manual `psql -f schema.sql` step.
+#   - pipeline  : the Python app (Dockerfile). Runs generate -> ingest -> load
+#                 in order via scripts/run_pipeline.sh, and only starts once
+#                 Postgres reports healthy (not just "started" — a freshly
+#                 started Postgres container isn't immediately ready to
+#                 accept connections, which is a very common source of
+#                 flaky "connection refused" errors if you don't wait for it).
+#
+# Usage:
+#   docker compose up --build          # start Postgres + run the full pipeline once
+#   docker compose up -d postgres      # just the database, e.g. to inspect it manually
+#   docker compose run --rm pipeline python -m lake.generate_data   # run one stage only
+#   docker compose down -v             # stop everything and wipe the database volume
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: dw_lake_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dw_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dw_password}
+      POSTGRES_DB: ${POSTGRES_DB:-dw_lake}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Named volume: database files persist across `docker compose down`
+      # (but NOT across `docker compose down -v`, which deletes volumes —
+      # useful when you want a clean slate to re-run the pipeline from zero).
+      - pgdata:/var/lib/postgresql/data
+      # Auto-applied on first container startup only. If you change
+      # schema.sql later, it will NOT re-run automatically — you'd
+      # `docker compose down -v` first, or apply it manually with psql.
+      - ./warehouse/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dw_user} -d ${POSTGRES_DB:-dw_lake}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pipeline:
+    build: .
+    container_name: dw_lake_pipeline
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # These override config.yaml's ${POSTGRES_HOST:localhost} /
+      # ${POSTGRES_PASSWORD:...} placeholders. "postgres" is the service
+      # name above — Docker Compose gives every service a DNS name on
+      # the shared network automatically, so the app reaches the
+      # database at that hostname instead of localhost.
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dw_password}
+    volumes:
+      # Bind mounts (not named volumes): generated CSVs, cleaned Parquet
+      # files, and logs land on your actual filesystem, not hidden inside
+      # a container — so you can inspect data/processed/*.parquet or
+      # logs/pipeline.log directly after a run.
+      - ./data:/app/data
+      - ./logs:/app/logs
+    command: ["bash", "scripts/run_pipeline.sh"]
+
+volumes:
+  pgdata:
