@@ -242,7 +242,7 @@ def build_fact_rows_with_duckdb(processed_dir: str):
         JOIN read_parquet('{products_path}') p
             ON o.product_id = p.product_id
         """
-    ).to_arrow_table()
+    ).fetch_arrow_table()
     con.close()
 
     logger.info(f"[fact_sales] DuckDB joined orders x products -> {arrow_table.num_rows} rows (Arrow interchange)")
