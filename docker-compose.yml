@@ -40,6 +40,10 @@ services:
       # schema.sql later, it will NOT re-run automatically — you'd
       # `docker compose down -v` first, or apply it manually with psql.
       - ./warehouse/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      # Read-only mount so `docker compose exec postgres psql -f ...`
+      # can find the query files — they live on the host and in the
+      # pipeline image, but the postgres container is otherwise bare.
+      - ./warehouse/queries:/queries:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dw_user} -d ${POSTGRES_DB:-dw_lake}"]
       interval: 5s
