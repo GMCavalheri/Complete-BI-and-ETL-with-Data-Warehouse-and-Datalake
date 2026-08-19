@@ -89,7 +89,7 @@ them.
 ## Project structure
 
 ```
-dw-lake-integration/
+Complete-BI-and-ETL-with-Data-Warehouse-and-Datalake/
 ├── docker-compose.yml         # postgres + pipeline services
 ├── Dockerfile                 # pipeline app image
 ├── config/
@@ -157,8 +157,8 @@ natural keys, indexing strategy, etc.).
 ### Option A — Docker (recommended)
 
 ```bash
-git clone <your-repo-url>
-cd dw-lake-integration
+git clone git@github.com:GMCavalheri/Complete-BI-and-ETL-with-Data-Warehouse-and-Datalake.git
+cd Complete-BI-and-ETL-with-Data-Warehouse-and-Datalake
 docker compose up --build
 ```
 
